@@ -1,15 +1,23 @@
+## 人在回路，human-in-the-loop
+## agent 集成大模型，集成工具，工具调用时候，提供中断机制
+## 人的确认：approve，reject，modify
+## 中间件，middleware
+
 ### 更复杂一点的智能体 create_agent
-## 大模型 model
-## 系统提示词：system_prompt 
-## 工具：tools 用户消息传递参数
-# => 工具运行时上下文传递参数：context_schema 
-## 记忆管理 checkpointer
-## 结构化输出：response_format 
+## 大模型：model
+## 系统提示词：system_prompt -new
+## 工具：tools ,用户消息传递参数
+# => 工具运行时上下文传递参数：context_schema -new
+## 记忆管理：checkpointer
+## 结构化输出：reponse_format -new
 
 from langchain.agents import create_agent
 from langgraph.checkpoint.memory import InMemorySaver
 from langchain.tools import tool, ToolRuntime
 from langchain.chat_models import init_chat_model
+
+from langchain.agents.middleware import HumanInTheLoopMiddleware
+from langgraph.types import Command
 
 from dataclasses import dataclass
 from dotenv import load_dotenv
@@ -72,7 +80,16 @@ agent = create_agent(
     tools=[get_weather_for_location, get_user_location],
     context_schema=Context,
     response_format=ResponseFormat,
-    checkpointer=checkpointer
+    checkpointer=checkpointer,
+    middleware=[HumanInTheLoopMiddleware(
+        interrupt_on={
+            "get_user_location": True, # 所有决策都允许，approve/reject/edit
+            "get_weather_for_location": {
+                "allowed_decisions": ["approve", "reject"]
+            }
+        },
+        description_prefix="工具执行挂起等待决策："
+    )]
 )
 
 # 配置 thread_id
@@ -86,20 +103,57 @@ response = agent.invoke(
     context=Context(user_id="1")
 )
 
-print(response["structured_response"])
-# messages = response["messages"]
-# for message in messages:
-#     message.pretty_print()
+# print(response["structured_response"])
+messages = response["messages"]
+print(f"历史消息：{len(messages)}条")
+for message in messages:
+    message.pretty_print()
 
-# 第二轮回答
+if "__interrupt__" in response:
+    print("INTERRUPTED! Waiting for human decision...")
+    interrupt = response["__interrupt__"][0]
+    for request in interrupt.value["action_requests"]:
+        print(request["description"])
+
+# 第一个指令
 response = agent.invoke(
-    {"messages": [{"role": "user", "content": "thank you!"}]},
+    Command(
+        resume={"decisions": [{"type": "approve"}]}
+    ),
     config=config,
     context=Context(user_id="1")
 )
 
-# messages = response["messages"]
-# for message in messages:
-#     message.pretty_print()
+# 第二轮回答
+# response = agent.invoke(
+#     {"messages": [{"role": "user", "content": "thank you!"}]},
+#     config=config,
+#     context=Context(user_id="1")
+# )
+
+messages = response["messages"]
+print(f"历史消息：{len(messages)}条")
+for message in messages:
+    message.pretty_print()
 # print(response)
-print(response["structured_response"])
+# print(response["structured_response"])
+
+if "__interrupt__" in response:
+    print("INTERRUPTED! Waiting for human decision...")
+    interrupt = response["__interrupt__"][0]
+    for request in interrupt.value["action_requests"]:
+        print(request["description"])
+
+# 第二个指令
+response = agent.invoke(
+    Command(
+        resume={"decisions": [{"type": "approve"}]}
+    ),
+    config=config,
+    context=Context(user_id="1")
+)
+
+messages = response["messages"]
+print(f"历史消息：{len(messages)}条")
+for message in messages:
+    message.pretty_print()
