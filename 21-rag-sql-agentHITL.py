@@ -73,21 +73,63 @@ Then you should query the schema of the most relevant tables.
 
 from langchain.agents import create_agent
 from langgraph.checkpoint.memory import InMemorySaver
-
+from langchain.agents.middleware import HumanInTheLoopMiddleware
 
 # 创建智能体
 agent = create_agent(
     model=model,
     tools=tools,
-    checkpointer=InMemorySaver()
+    checkpointer=InMemorySaver(),
+    middleware=[
+        HumanInTheLoopMiddleware(
+            interrupt_on={"sql_db_query": True},
+            description_prefix="Tool execution pending approval"
+        )
+    ]
 )
 
 question = "哪种音乐类型的歌曲平均时长最长？"
 config = {"configurable": {"thread_id": "1"}}
+
+decisions = []
 
 for step in agent.stream(
     {"messages": [{"role": "user", "content": question}]},
     config=config,
     stream_mode="values",
 ):
-    step["messages"][-1].pretty_print()
+    if "__interrupt__" in step:
+        print("INTERRUPTED:")
+        interrupt = step["__interrupt__"][0]
+        for request in interrupt.value["action_requests"]:
+            print(f"description:{request['description']}")
+        user_point = input("\n请输入您的决定（approve/reject/edit）: ").strip().lower()
+        if user_point == "approve":
+            decisions = [{"type": "approve"}]
+        elif user_point == "reject":
+            decisions = [{"type": "reject"}]
+        elif user_point == "edit":
+            decisions = [{"type": "edit", "edited_action": {"name": "new_tool_name", "args": {"arg1": "value1"}}}]
+        else:
+            print("无效输入，默认选择 approve")
+            decisions = [{"type": "approve"}]
+    elif "messages" in step:
+        step["messages"][-1].pretty_print()
+    else:
+        pass
+
+from langgraph.types import Command
+for step in agent.stream(
+    Command(resume={"decisions": decisions}),
+    config=config,
+    stream_mode="values",
+):
+    if "messages" in step:
+        step["messages"][-1].pretty_print()
+    elif "__interrupt__" in step:
+        print("INTERRUPTED:")
+        interrupt = step["__interrupt__"][0]
+        for request in interrupt.value["action_requests"]:
+            print(f"description:{request['description']}")
+    else:
+        pass
