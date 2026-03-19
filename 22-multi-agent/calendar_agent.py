@@ -54,12 +54,12 @@ calendar_agent = create_agent(
     model=model,
     tools=[create_calendar_event, get_available_time_slots],
     system_prompt=CALENDAR_AGENT_SYSTEM_PROMPT,
-    middleware=[
-        HumanInTheLoopMiddleware(
-            interrupt_on={"create_calendar_event": True},
-            description_prefix="Calendar event pending approval",
-        ),
-    ],
+    # middleware=[
+    #     HumanInTheLoopMiddleware(
+    #         interrupt_on={"create_calendar_event": True},
+    #         description_prefix="Calendar event pending approval",
+    #     ),
+    # ],
 )
 
 def test_calendar_agent():

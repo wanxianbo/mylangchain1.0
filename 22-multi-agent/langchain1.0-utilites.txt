@@ -1,0 +1,12 @@
+1.langsmith:loggoing tool
+  1) smith.langchain.com 注册用户，申请api key
+  2) 程序里面使用.env,定义环境变量
+2.studio：部署agent
+3.agent chat-ui：部署agent交互
+  0) langsmith，部署agent
+  1）node.js 启动 node.js command prompt
+  2）npx create-agent-chat-app --project-name my-chat-ui
+  3) cd my-chat-ui
+  4) pnpm install pnpm dev
+  5) 浏览器：http://localhost:3000
+  6) .env

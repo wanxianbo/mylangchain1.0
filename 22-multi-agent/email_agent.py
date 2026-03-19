@@ -40,12 +40,12 @@ email_agent = create_agent(
     model=model,
     tools=[send_email],
     system_prompt=EMAIL_AGENT_PROMPT,
-    middleware=[
-        HumanInTheLoopMiddleware(
-            interrupt_on={"send_email": True},
-            description_prefix="Outbound email pending approval",
-        ),
-    ],
+    # middleware=[
+    #     HumanInTheLoopMiddleware(
+    #         interrupt_on={"send_email": True},
+    #         description_prefix="Outbound email pending approval",
+    #     ),
+    # ],
 )
 
 def test_email_agent():

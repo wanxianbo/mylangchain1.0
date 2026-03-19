@@ -20,7 +20,6 @@ from langchain.chat_models import init_chat_model
 from dotenv import load_dotenv
 from langchain.tools import tool
 from langchain.agents import create_agent
-from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
 from calendar_agent import calendar_agent
@@ -74,13 +73,10 @@ SUPERVISOR_PROMPT = (
     "When a request involves multiple actions, use multiple tools in sequence."
 )
 
-checkpointer = InMemorySaver()
-
 supervisor_agent = create_agent(
     model=model,
     tools=[schedule_event, manage_email],
     system_prompt=SUPERVISOR_PROMPT,
-    checkpointer=checkpointer,
 )
 
 config = {"configurable": {"thread_id": "1"}}
@@ -95,10 +91,11 @@ def test_supervisor_agent():
     ):
         event["messages"][-1].pretty_print()
     
-    query = ("Schedule a team meeting ['design-team@example.com'] on 2026-03-10 at 2pm for 1 hour,"
-             "Send a email to Alice[alice@example.com] and cc Charlie[charlie@example.com] about the design document meeting details")
+    query = ("Schedule a team meeting ['design-team@example.com'] on 2026-06-10 at 14:00 for 1 hour,"
+             "then send a email to Alice[alice@example.com] and cc Charlie[charlie@example.com] about the design document meeting details")
     for step in supervisor_agent.stream(
         {"messages": [{"role": "user", "content": query}]},
+        config=config,
         stream_mode="values"
     ):
         step["messages"][-1].pretty_print()
@@ -144,4 +141,4 @@ def test_supervisor_agent():
     #         pass
     
 
-test_supervisor_agent()
+# test_supervisor_agent()
