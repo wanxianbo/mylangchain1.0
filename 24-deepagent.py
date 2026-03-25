@@ -1,12 +1,17 @@
-### agent 如何使用搜索引擎 tavily
-### tavily：搜索引擎：给agent 用的，提供两种api
-# tavily_search
-# tavily_extract
-# tavily_crawl
-## pip install tavily-python langchain-tavily
+## deepagent: planning file system(agent) subagent
+## demo: research agent: research report
+
+## pip install deepagents
+
+### 过程：
+# write_tools, todo list
+# internet_search -> update todo list
+# write_file
 
 from langchain.chat_models import init_chat_model
-from langchain.agents import create_agent
+# from langchain.agents import create_agent
+from deepagents import create_deep_agent
+
 
 from dotenv import load_dotenv
 
@@ -53,7 +58,7 @@ model = init_chat_model(
     max_tokens=1000
 )
 
-agent = create_agent(
+agent = create_deep_agent(
     model=model,
     tools=[internet_search],
     system_prompt=research_instructions
@@ -63,4 +68,7 @@ for step in agent.stream(
         {"messages": [{"role": "user", "content": "什么是LangGraph？详细介绍它的功能、用途和主要特点。"}]},
         stream_mode="values"
     ):
+        if "files" in step:
+              print("*"*50)
+              print(step["files"])
         step["messages"][-1].pretty_print()
